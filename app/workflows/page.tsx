@@ -4,13 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
-type Workflow = {
-    id: string;
-    name: string;
-    webhookUrl?: string;
-    fields?: unknown[];
-};
+import {Workflow} from "@/features/workflows/types";
 
 export default function WorkflowsPage() {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);

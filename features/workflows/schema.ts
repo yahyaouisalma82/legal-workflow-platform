@@ -36,6 +36,8 @@ export const workflowSchema = z.object({
     webhookUrl: z
         .url("Invalid webhook URL"),
 
+    allowedDomain: z.url("Invalid allowed domain"),
+
     fields: z
         .array(fieldSchema)
         .min(1, "At least one field is required"),

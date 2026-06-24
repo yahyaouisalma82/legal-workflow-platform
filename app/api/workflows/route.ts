@@ -32,6 +32,7 @@ export async function POST(req: Request) {
                 fields: workflow.fields,
                 webhookUrl:
                 workflow.webhookUrl,
+                allowedDomain:  workflow.allowedDomain,
                 theme: workflow.theme,
                 createdAt: serverTimestamp(),
             }

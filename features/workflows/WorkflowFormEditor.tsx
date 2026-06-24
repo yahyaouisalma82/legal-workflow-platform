@@ -1,22 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Field, FieldErrors } from "@/features/workflows/types";
 import { renderPreviewField } from "@/features/widget/rendererPreview";
 import { workflowSchema } from "@/features/workflows/schema";
 import { toast } from "sonner";
 
-export default function WorkflowFormBuilder() {
+export default function WorkflowFormEditor({ id }: { id: string }) {
+    const [loading, setLoading] = useState(true);
+
     const [name, setName] = useState("");
     const [webhookUrl, setWebhookUrl] = useState("");
-    const [fields, setFields] = useState<Field[]>([]);
-    const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({});
     const [allowedDomain, setAllowedDomain] =
         useState("");
-    const [errors, setErrors] = useState<FieldErrors>({
-        fields: {},
-    });
+    const [fields, setFields] = useState<Field[]>([]);
+    const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>(
+        {}
+    );
+
+    const [errors, setErrors] = useState<FieldErrors>({ fields: {} });
 
     const [theme, setTheme] = useState({
         primaryColor: "#000",
@@ -24,44 +27,55 @@ export default function WorkflowFormBuilder() {
         fontSize: "14px",
     });
 
-    /* ---------------- FIELD ACTIONS ---------------- */
+    /* ---------------- LOAD ---------------- */
 
-    const addTextField = () => {
+    useEffect(() => {
+        const load = async () => {
+            const res = await fetch(`/api/workflows/${id}`);
+            const data = await res.json();
+
+            if (!res.ok) {
+                toast.error(data.error ?? "Failed to load workflow");
+                return;
+            }
+
+            setName(data.name);
+            setWebhookUrl(data.webhookUrl);
+            setAllowedDomain(data.allowedDomain);
+            setFields(data.fields);
+            setTheme(data.theme ?? theme);
+
+            setLoading(false);
+        };
+
+        load();
+    }, [id]);
+
+    /* ---------------- FIELD ACTIONS (SAME AS CREATE) ---------------- */
+
+    const addTextField = () =>
         setFields((prev) => [
             ...prev,
             { id: crypto.randomUUID(), type: "text", label: "" },
         ]);
-    };
 
-    const addSelectField = () => {
+    const addSelectField = () =>
         setFields((prev) => [
             ...prev,
             { id: crypto.randomUUID(), type: "select", label: "", options: [] },
         ]);
-    };
 
-    const addEmailField = () => {
-        setFields(prev => [
+    const addEmailField = () =>
+        setFields((prev) => [
             ...prev,
-            {
-                id: crypto.randomUUID(),
-                type: "email",
-                label: "",
-            },
+            { id: crypto.randomUUID(), type: "email", label: "" },
         ]);
-    };
 
-    const addRadioField = () => {
-        setFields(prev => [
+    const addRadioField = () =>
+        setFields((prev) => [
             ...prev,
-            {
-                id: crypto.randomUUID(),
-                type: "radio",
-                label: "",
-                options: [],
-            },
+            { id: crypto.randomUUID(), type: "radio", label: "", options: [] },
         ]);
-    };
 
     const updateLabel = (id: string, label: string) => {
         setFields((prev) =>
@@ -80,9 +94,7 @@ export default function WorkflowFormBuilder() {
             .filter(Boolean);
 
         setFields((prev) =>
-            prev.map((f) =>
-                f.id === id ? { ...f, options } : f
-            )
+            prev.map((f) => (f.id === id ? { ...f, options } : f))
         );
 
         setOptionDrafts((prev) => {
@@ -96,53 +108,40 @@ export default function WorkflowFormBuilder() {
         setFields((prev) => prev.filter((f) => f.id !== id));
     };
 
-    /* ---------------- ERROR MAPPING ---------------- */
+    /* ---------------- VALIDATION (UNCHANGED) ---------------- */
 
     function mapZodErrors(error: z.ZodError, fields: Field[]): FieldErrors {
-        const result: FieldErrors = {
-            fields: {},
-        };
+        const result: FieldErrors = { fields: {} };
 
         for (const issue of error.issues) {
             const path = issue.path;
 
-            if (path[0] === "name") {
-                result.name = issue.message;
-            }
-
-            if (path[0] === "webhookUrl") {
+            if (path[0] === "name") result.name = issue.message;
+            if (path[0] === "webhookUrl")
                 result.webhookUrl = issue.message;
-            }
             if (path[0] === "allowedDomain") {
                 result.allowedDomain = issue.message;
             }
-
             if (path[0] === "fields" && typeof path[1] === "number") {
-                const index = path[1];
-                const field = fields[index];
-
+                const field = fields[path[1]];
                 if (!field) continue;
 
-                const id = field.id;
-
-                if (!result.fields[id]) {
-                    result.fields[id] = {};
+                if (!result.fields[field.id]) {
+                    result.fields[field.id] = {};
                 }
 
                 if (path[2] === "label") {
-                    result.fields[id].label = issue.message;
+                    result.fields[field.id].label = issue.message;
                 }
 
                 if (path[2] === "options") {
-                    result.fields[id].options = issue.message;
+                    result.fields[field.id].options = issue.message;
                 }
             }
         }
 
         return result;
     }
-
-    /* ---------------- VALIDATION ---------------- */
 
     const validate = () => {
         const result = workflowSchema.safeParse({
@@ -155,7 +154,6 @@ export default function WorkflowFormBuilder() {
 
         if (!result.success) {
             setErrors(mapZodErrors(result.error, fields));
-            console.log(result.error);
             return false;
         }
 
@@ -163,54 +161,49 @@ export default function WorkflowFormBuilder() {
         return true;
     };
 
-    /* ---------------- SAVE ---------------- */
+    /* ---------------- UPDATE ---------------- */
 
-    const saveWorkflow = async () => {
-        const isValid = validate();
-
-        if (!isValid) {
-            toast.error("Please make sure to fill all fields.");
+    const updateWorkflow = async () => {
+        if (!validate()) {
+            toast.error("Fix validation errors");
             return;
         }
 
-        try {
-            const res = await fetch("/api/workflows", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name,
-                    webhookUrl,
-                    allowedDomain,
-                    fields,
-                    theme,
-                }),
-            });
+        const res = await fetch(`/api/workflows/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                name,
+                webhookUrl,
+                allowedDomain,
+                fields,
+                theme,
+            }),
+        });
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                toast.error(data.error ?? "Save failed");
-                return;
-            }
-
-            toast.success("Workflow saved successfully");
-        } catch {
-            toast.error("Failed to save workflow");
+        const data = await res.json();
+        console.log(     {res})
+        if (!res.ok) {
+            toast.error(data.error ?? "Update failed");
+            return;
         }
+
+        toast.success("Workflow updated");
     };
-    /* ---------------- UI ---------------- */
+
+    if (loading) return <div className="p-8">Loading...</div>;
+
+    /* ---------------- UI (IDENTICAL TO CREATE) ---------------- */
 
     return (
         <div className="w-full mx-auto p-8">
-            <h1 className="text-3xl font-bold mb-6">Create Workflow</h1>
+            <h1 className="text-3xl font-bold mb-6">Edit Workflow</h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
                 {/* LEFT SIDE */}
                 <div>
-
                     {/* NAME */}
                     <div className="mb-4">
                         <label className="block mb-2">
@@ -230,7 +223,7 @@ export default function WorkflowFormBuilder() {
                         )}
                     </div>
 
-                    {/* FIELDS ACTIONS */}
+                    {/* ACTIONS */}
                     <div className="flex flex-wrap gap-2 mb-6">
                         <button
                             className="border px-4 py-2"
@@ -265,7 +258,6 @@ export default function WorkflowFormBuilder() {
                     <div className="space-y-4 mb-6">
                         {fields.map((field) => (
                             <div key={field.id} className="border p-4 rounded">
-
                                 <div className="text-sm text-gray-600 mb-2 capitalize">
                                     Type: {field.type}
                                 </div>
@@ -279,35 +271,28 @@ export default function WorkflowFormBuilder() {
                                     placeholder="Field label *"
                                 />
 
-                                {errors.fields[field.id]?.label && (
-                                    <p className="text-red-500 text-sm mt-1">
-                                        {errors.fields[field.id].label}
-                                    </p>
-                                )}
-
                                 {(field.type === "select" ||
-                                    field.type === "radio") && (                                    <>
-                                        <input
-                                            className="border p-2 w-full mt-2"
-                                            value={
-                                                optionDrafts[field.id] ??
-                                                (field.options || []).join(", ")
-                                            }
-                                            onChange={(e) =>
-                                                updateSelectDraft(field.id, e.target.value)
-                                            }
-                                            onBlur={(e) =>
-                                                commitSelectOptions(field.id, e.target.value)
-                                            }
-                                            placeholder="Option1, Option2 *"
-                                        />
-
-                                        {errors.fields[field.id]?.options && (
-                                            <p className="text-red-500 text-sm mt-1">
-                                                {errors.fields[field.id].options}
-                                            </p>
-                                        )}
-                                    </>
+                                    field.type === "radio") && (
+                                    <input
+                                        className="border p-2 w-full mt-2"
+                                        value={
+                                            optionDrafts[field.id] ??
+                                            (field.options || []).join(", ")
+                                        }
+                                        onChange={(e) =>
+                                            updateSelectDraft(
+                                                field.id,
+                                                e.target.value
+                                            )
+                                        }
+                                        onBlur={(e) =>
+                                            commitSelectOptions(
+                                                field.id,
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Option1, Option2 *"
+                                    />
                                 )}
 
                                 <button
@@ -329,7 +314,9 @@ export default function WorkflowFormBuilder() {
                         <input
                             className="border p-2 w-full"
                             value={webhookUrl}
-                            onChange={(e) => setWebhookUrl(e.target.value)}
+                            onChange={(e) =>
+                                setWebhookUrl(e.target.value)
+                            }
                         />
 
                         {errors.webhookUrl && (
@@ -358,7 +345,6 @@ export default function WorkflowFormBuilder() {
                             </p>
                         )}
                     </div>
-
                     {/* THEME */}
                     <div className="mb-6 space-y-2">
                         <h2 className="font-semibold">Theme</h2>
@@ -390,15 +376,10 @@ export default function WorkflowFormBuilder() {
 
                     {/* SAVE */}
                     <button
-                        onClick={saveWorkflow}
-                        disabled={fields.length === 0}
-                        className={`mt-4 px-4 py-2 text-white ${
-                            fields.length === 0
-                                ? "bg-gray-400 cursor-not-allowed"
-                                : "bg-black"
-                        }`}
+                        onClick={updateWorkflow}
+                        className="mt-4 px-4 py-2 text-white bg-black"
                     >
-                        Save Workflow
+                        Update Workflow
                     </button>
                 </div>
 
@@ -414,7 +395,6 @@ export default function WorkflowFormBuilder() {
                         )}
                     </div>
                 </div>
-
             </div>
         </div>
     );

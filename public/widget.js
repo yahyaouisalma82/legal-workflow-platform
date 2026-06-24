@@ -19,6 +19,7 @@
     )
         .then((res) => res.json())
         .then((workflow) => {
+            console.log({workflow});
             renderWorkflow(container, workflow);
         })
         .catch(console.error);

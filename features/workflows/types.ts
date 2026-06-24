@@ -37,6 +37,15 @@ export type Workflow = {
     id: string;
     name: string;
     webhookUrl: string;
+    allowedDomain: string;
     fields: Field[];
     theme: Theme;
+};
+
+
+export type FieldErrors = {
+    name?: string;
+    webhookUrl?: string;
+    allowedDomain?: string;
+    fields: Record<string, { label?: string; options?: string }>;
 };

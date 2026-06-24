@@ -5,13 +5,12 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Workflow } from "@/features/workflows/types";
 import { renderRuntimeField } from "@/features/widget/runtimeRenderer";
+import {useParams} from "next/navigation";
 
-export default function EmbedPage({
-                                      params,
-                                  }: {
-    params: Promise<{ id: string }>;
-}) {
-    const { id } = use(params);
+
+export default function EmbedPage() {
+    const params = useParams();
+    const id = params.id as string;
 
     const [workflow, setWorkflow] = useState<Workflow | null>(null);
     const [loading, setLoading] = useState(true);
