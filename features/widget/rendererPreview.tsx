@@ -1,25 +1,8 @@
 import React from "react";
+import {Theme,Field} from "@/features/workflows/types";
 
-export type Theme = {
-    primaryColor: string;
-    borderRadius: string;
-    fontSize: string;
-};
 
-export type Field =
-    | {
-    id: string;
-    type: "text";
-    label: string;
-}
-    | {
-    id: string;
-    type: "select";
-    label: string;
-    options: string[];
-};
-
-export function renderField(field: Field, theme: Theme) {
+export function renderPreviewField(field: Field, theme: Theme) {
     const baseStyle = {
         borderRadius: theme.borderRadius,
         fontSize: theme.fontSize,

@@ -1,3 +1,10 @@
+
+export type Theme = {
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+};
+
 export type Field =
     | {
     id: string;
@@ -14,6 +21,7 @@ export type Field =
 export type Workflow = {
     id: string;
     name: string;
-    fields: Field[];
     webhookUrl: string;
+    fields: Field[];
+    theme: Theme;
 };

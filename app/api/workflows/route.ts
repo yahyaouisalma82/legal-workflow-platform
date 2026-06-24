@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
         console.log(JSON.stringify(body));
-        const { name, fields, webhookUrl } = body;
+        const { name, fields, webhookUrl, theme } = body;
 
         if (!name || !fields || !webhookUrl) {
             return NextResponse.json(
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
             name,
             fields,
             webhookUrl,
+            theme,
             createdAt: serverTimestamp(),
         });
 

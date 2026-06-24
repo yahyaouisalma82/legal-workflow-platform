@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Field } from "@/features/workflows/types";
-import { renderField } from "@/features/widget/renderer";
+import { renderPreviewField } from "@/features/widget/rendererPreview";
 
 export default function WorkflowFormBuilder() {
     const [name, setName] = useState("");
@@ -93,6 +93,7 @@ export default function WorkflowFormBuilder() {
                 name,
                 fields,
                 webhookUrl,
+                theme,
             }),
         });
 
@@ -249,7 +250,7 @@ export default function WorkflowFormBuilder() {
                     </h2>
 
                     <div className="space-y-3">
-                        {fields.map((field) => renderField(field, theme))}                    </div>
+                        {fields.map((field) => renderPreviewField(field, theme))}                    </div>
                 </div>
 
             </div>
