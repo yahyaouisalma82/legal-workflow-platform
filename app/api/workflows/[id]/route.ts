@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { workflowSchema } from "@/features/workflows/schema";
+import {z} from "zod";
 
 export async function GET(
     req: Request,
@@ -49,7 +50,7 @@ export async function PUT(
             return NextResponse.json(
                 {
                     error: "Validation failed",
-                    issues: result.error.flatten(),
+                    issues: z.treeifyError(result.error),
                 },
                 { status: 400 }
             );

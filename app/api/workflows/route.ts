@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { workflowSchema } from "@/features/workflows/schema";
+import {z} from "zod";
 
 export async function POST(req: Request) {
     try {
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     error: "Validation failed",
-                    issues: result.error.flatten(),
+                    issues: z.treeifyError(result.error),
                 },
                 {
                     status: 400,
