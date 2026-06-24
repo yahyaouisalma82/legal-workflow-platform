@@ -1,36 +1,58 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+import { db } from "@/lib/firebase";
+import { workflowSchema } from "@/features/workflows/schema";
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        console.log(JSON.stringify(body));
-        const { name, fields, webhookUrl, theme } = body;
 
-        if (!name || !fields || !webhookUrl) {
+        const result =
+            workflowSchema.safeParse(body);
+
+        if (!result.success) {
             return NextResponse.json(
-                { error: "Missing name or fields" },
-                { status: 400 }
+                {
+                    error: "Validation failed",
+                    issues: result.error.flatten(),
+                },
+                {
+                    status: 400,
+                }
             );
         }
 
-        const docRef = await addDoc(collection(db, "workflows"), {
-            name,
-            fields,
-            webhookUrl,
-            theme,
-            createdAt: serverTimestamp(),
-        });
+        const workflow = result.data;
+
+        const docRef = await addDoc(
+            collection(db, "workflows"),
+            {
+                name: workflow.name,
+                fields: workflow.fields,
+                webhookUrl:
+                workflow.webhookUrl,
+                theme: workflow.theme,
+                createdAt: serverTimestamp(),
+            }
+        );
+
 
         return NextResponse.json({
             success: true,
             id: docRef.id,
         });
-    } catch (err) {
+    } catch (error) {
+        console.error(error);
+
         return NextResponse.json(
-            { error: "Failed to save workflow" },
-            { status: 500 }
+            {
+                error:
+                    "Failed to save workflow",
+            },
+            {
+                status: 500,
+            }
         );
     }
 }

@@ -1,22 +1,37 @@
-
 export type Theme = {
     primaryColor: string;
     borderRadius: string;
     fontSize: string;
 };
 
-export type Field =
-    | {
+type BaseField = {
     id: string;
+    label: string;
+};
+
+export type TextField = BaseField & {
     type: "text";
-    label: string;
-}
-    | {
-    id: string;
+};
+
+export type EmailField = BaseField & {
+    type: "email";
+};
+
+export type SelectField = BaseField & {
     type: "select";
-    label: string;
     options: string[];
 };
+
+export type RadioField = BaseField & {
+    type: "radio";
+    options: string[];
+};
+
+export type Field =
+    | TextField
+    | EmailField
+    | SelectField
+    | RadioField;
 
 export type Workflow = {
     id: string;

@@ -1,38 +1,76 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { Field } from "@/features/workflows/types";
 import { renderPreviewField } from "@/features/widget/rendererPreview";
+import { workflowSchema } from "@/features/workflows/schema";
+import { toast } from "sonner";
+/* ---------------- TYPES ---------------- */
+
+type FieldErrors = {
+    name?: string;
+    webhookUrl?: string;
+    fields: Record<
+        string,
+        {
+            label?: string;
+            options?: string;
+        }
+    >;
+};
+
+/* ---------------- COMPONENT ---------------- */
 
 export default function WorkflowFormBuilder() {
     const [name, setName] = useState("");
     const [webhookUrl, setWebhookUrl] = useState("");
-
     const [fields, setFields] = useState<Field[]>([]);
-
     const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({});
+
+    const [errors, setErrors] = useState<FieldErrors>({
+        fields: {},
+    });
+
     const [theme, setTheme] = useState({
         primaryColor: "#000",
         borderRadius: "6px",
         fontSize: "14px",
     });
+
+    /* ---------------- FIELD ACTIONS ---------------- */
+
     const addTextField = () => {
         setFields((prev) => [
             ...prev,
-            {
-                id: crypto.randomUUID(),
-                type: "text",
-                label: "",
-            },
+            { id: crypto.randomUUID(), type: "text", label: "" },
         ]);
     };
 
     const addSelectField = () => {
         setFields((prev) => [
             ...prev,
+            { id: crypto.randomUUID(), type: "select", label: "", options: [] },
+        ]);
+    };
+
+    const addEmailField = () => {
+        setFields(prev => [
+            ...prev,
             {
                 id: crypto.randomUUID(),
-                type: "select",
+                type: "email",
+                label: "",
+            },
+        ]);
+    };
+
+    const addRadioField = () => {
+        setFields(prev => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                type: "radio",
                 label: "",
                 options: [],
             },
@@ -41,17 +79,12 @@ export default function WorkflowFormBuilder() {
 
     const updateLabel = (id: string, label: string) => {
         setFields((prev) =>
-            prev.map((field) =>
-                field.id === id ? { ...field, label } : field
-            )
+            prev.map((f) => (f.id === id ? { ...f, label } : f))
         );
     };
 
     const updateSelectDraft = (id: string, value: string) => {
-        setOptionDrafts((prev) => ({
-            ...prev,
-            [id]: value,
-        }));
+        setOptionDrafts((prev) => ({ ...prev, [id]: value }));
     };
 
     const commitSelectOptions = (id: string, value: string) => {
@@ -61,8 +94,8 @@ export default function WorkflowFormBuilder() {
             .filter(Boolean);
 
         setFields((prev) =>
-            prev.map((field) =>
-                field.id === id ? { ...field, options } : field
+            prev.map((f) =>
+                f.id === id ? { ...f, options } : f
             )
         );
 
@@ -75,60 +108,139 @@ export default function WorkflowFormBuilder() {
 
     const deleteField = (id: string) => {
         setFields((prev) => prev.filter((f) => f.id !== id));
-
-        setOptionDrafts((prev) => {
-            const copy = { ...prev };
-            delete copy[id];
-            return copy;
-        });
     };
+
+    /* ---------------- ERROR MAPPING ---------------- */
+
+    function mapZodErrors(error: z.ZodError, fields: Field[]): FieldErrors {
+        const result: FieldErrors = {
+            fields: {},
+        };
+
+        for (const issue of error.issues) {
+            const path = issue.path;
+
+            if (path[0] === "name") {
+                result.name = issue.message;
+            }
+
+            if (path[0] === "webhookUrl") {
+                result.webhookUrl = issue.message;
+            }
+
+            if (path[0] === "fields" && typeof path[1] === "number") {
+                const index = path[1];
+                const field = fields[index];
+
+                if (!field) continue;
+
+                const id = field.id;
+
+                if (!result.fields[id]) {
+                    result.fields[id] = {};
+                }
+
+                if (path[2] === "label") {
+                    result.fields[id].label = issue.message;
+                }
+
+                if (path[2] === "options") {
+                    result.fields[id].options = issue.message;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /* ---------------- VALIDATION ---------------- */
+
+    const validate = () => {
+        const result = workflowSchema.safeParse({
+            name,
+            webhookUrl,
+            fields,
+            theme,
+        });
+
+        if (!result.success) {
+            setErrors(mapZodErrors(result.error, fields));
+            console.log(result.error);
+            return false;
+        }
+
+        setErrors({ fields: {} });
+        return true;
+    };
+
+    /* ---------------- SAVE ---------------- */
 
     const saveWorkflow = async () => {
-        const res = await fetch("/api/workflows", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                name,
-                fields,
-                webhookUrl,
-                theme,
-            }),
-        });
+        const isValid = validate();
 
-        const data = await res.json();
+        if (!isValid) {
+            toast.error("Please make sure to fill all fields.");
+            return;
+        }
 
-        if (data.success) {
-            alert("Saved: " + data.id);
-        } else {
-            alert("Save failed");
+        try {
+            const res = await fetch("/api/workflows", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name,
+                    webhookUrl,
+                    fields,
+                    theme,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                toast.error(data.error ?? "Save failed");
+                return;
+            }
+
+            toast.success("Workflow saved successfully");
+        } catch {
+            toast.error("Failed to save workflow");
         }
     };
+    /* ---------------- UI ---------------- */
 
     return (
         <div className="w-full mx-auto p-8">
-            <h1 className="text-3xl font-bold mb-6">
-                Create Workflow
-            </h1>
+            <h1 className="text-3xl font-bold mb-6">Create Workflow</h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                {/* LEFT SIDE (Builder) */}
+                {/* LEFT SIDE */}
                 <div>
-                    {/* name */}
+
+                    {/* NAME */}
                     <div className="mb-4">
-                        <label className="block mb-2">Workflow Name</label>
+                        <label className="block mb-2">
+                            Workflow Name *
+                        </label>
+
                         <input
                             className="border p-2 w-full"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Create Company"
                         />
+
+                        {errors.name && (
+                            <p className="text-red-500 text-sm mt-1">
+                                {errors.name}
+                            </p>
+                        )}
                     </div>
 
-                    {/* buttons */}
-                    <div className="flex gap-2 mb-6">
+                    {/* FIELDS ACTIONS */}
+                    <div className="flex flex-wrap gap-2 mb-6">
                         <button
                             className="border px-4 py-2"
                             onClick={addTextField}
@@ -138,17 +250,32 @@ export default function WorkflowFormBuilder() {
 
                         <button
                             className="border px-4 py-2"
+                            onClick={addEmailField}
+                        >
+                            Add Email Field
+                        </button>
+
+                        <button
+                            className="border px-4 py-2"
                             onClick={addSelectField}
                         >
                             Add Select Field
                         </button>
+
+                        <button
+                            className="border px-4 py-2"
+                            onClick={addRadioField}
+                        >
+                            Add Radio Field
+                        </button>
                     </div>
 
-                    {/* fields */}
+                    {/* FIELDS */}
                     <div className="space-y-4 mb-6">
                         {fields.map((field) => (
                             <div key={field.id} className="border p-4 rounded">
-                                <div className="mb-2">
+
+                                <div className="text-sm text-gray-600 mb-2 capitalize">
                                     Type: {field.type}
                                 </div>
 
@@ -158,30 +285,38 @@ export default function WorkflowFormBuilder() {
                                     onChange={(e) =>
                                         updateLabel(field.id, e.target.value)
                                     }
-                                    placeholder="Field label"
+                                    placeholder="Field label *"
                                 />
 
-                                {field.type === "select" && (
-                                    <input
-                                        className="border p-2 w-full mt-2"
-                                        value={
-                                            optionDrafts[field.id] ??
-                                            (field.options || []).join(", ")
-                                        }
-                                        onChange={(e) =>
-                                            updateSelectDraft(
-                                                field.id,
-                                                e.target.value
-                                            )
-                                        }
-                                        onBlur={(e) =>
-                                            commitSelectOptions(
-                                                field.id,
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Option1, Option2"
-                                    />
+                                {errors.fields[field.id]?.label && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.fields[field.id].label}
+                                    </p>
+                                )}
+
+                                {(field.type === "select" ||
+                                    field.type === "radio") && (                                    <>
+                                        <input
+                                            className="border p-2 w-full mt-2"
+                                            value={
+                                                optionDrafts[field.id] ??
+                                                (field.options || []).join(", ")
+                                            }
+                                            onChange={(e) =>
+                                                updateSelectDraft(field.id, e.target.value)
+                                            }
+                                            onBlur={(e) =>
+                                                commitSelectOptions(field.id, e.target.value)
+                                            }
+                                            placeholder="Option1, Option2 *"
+                                        />
+
+                                        {errors.fields[field.id]?.options && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {errors.fields[field.id].options}
+                                            </p>
+                                        )}
+                                    </>
                                 )}
 
                                 <button
@@ -194,19 +329,26 @@ export default function WorkflowFormBuilder() {
                         ))}
                     </div>
 
-                    {/* webhook */}
+                    {/* WEBHOOK */}
                     <div className="mb-4">
                         <label className="block mb-2">
-                            Webhook URL
+                            Webhook URL *
                         </label>
 
                         <input
                             className="border p-2 w-full"
                             value={webhookUrl}
                             onChange={(e) => setWebhookUrl(e.target.value)}
-                            placeholder="https://..."
                         />
+
+                        {errors.webhookUrl && (
+                            <p className="text-red-500 text-sm mt-1">
+                                {errors.webhookUrl}
+                            </p>
+                        )}
                     </div>
+
+                    {/* THEME */}
                     <div className="mb-6 space-y-2">
                         <h2 className="font-semibold">Theme</h2>
 
@@ -234,23 +376,32 @@ export default function WorkflowFormBuilder() {
                             }
                         />
                     </div>
-                    {/* save */}
+
+                    {/* SAVE */}
                     <button
-                        className="mt-4 px-4 py-2 bg-black text-white"
                         onClick={saveWorkflow}
+                        disabled={fields.length === 0}
+                        className={`mt-4 px-4 py-2 text-white ${
+                            fields.length === 0
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-black"
+                        }`}
                     >
                         Save Workflow
                     </button>
                 </div>
 
-                {/* RIGHT SIDE (Preview) */}
+                {/* RIGHT SIDE */}
                 <div className="border p-4 rounded h-fit lg:sticky lg:top-8">
                     <h2 className="text-xl font-semibold mb-4">
                         Live Preview
                     </h2>
 
                     <div className="space-y-3">
-                        {fields.map((field) => renderPreviewField(field, theme))}                    </div>
+                        {fields.map((field) =>
+                            renderPreviewField(field, theme)
+                        )}
+                    </div>
                 </div>
 
             </div>
