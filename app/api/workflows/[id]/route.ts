@@ -20,14 +20,15 @@ export async function GET(
                 { status: 404 }
             );
         }
+        const workflow = snap.data();
+
+        const { webhookSecret: _webhookSecret, ...safeData } = workflow;
 
         return NextResponse.json({
             id: snap.id,
-            ...snap.data(),
+            ...safeData,
         });
     } catch (error) {
-        console.log(error);
-
         return NextResponse.json(
             { error: "Failed to fetch workflow" },
             { status: 500 }
@@ -68,8 +69,6 @@ export async function PUT(
             id  ,
         });
     } catch (error) {
-        console.log(error);
-
         return NextResponse.json(
             { error: "Failed to update workflow" },
             { status: 500 }

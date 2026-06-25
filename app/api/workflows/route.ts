@@ -4,6 +4,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { workflowSchema } from "@/features/workflows/schema";
 import {z} from "zod";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
     try {
@@ -26,23 +27,19 @@ export async function POST(req: Request) {
 
         const workflow = result.data;
 
-        const docRef = await addDoc(
-            collection(db, "workflows"),
-            {
-                name: workflow.name,
-                fields: workflow.fields,
-                webhookUrl:
-                workflow.webhookUrl,
-                allowedDomain:  workflow.allowedDomain,
-                theme: workflow.theme,
-                createdAt: serverTimestamp(),
-            }
-        );
+        // generate secret
+        const webhookSecret = crypto.randomUUID();
 
+        const docRef = await addDoc(collection(db, "workflows"), {
+            ...workflow,
+            webhookSecret,
+            createdAt: serverTimestamp(),
+        });
 
         return NextResponse.json({
             success: true,
             id: docRef.id,
+            webhookSecret,
         });
     } catch (error) {
         console.error(error);

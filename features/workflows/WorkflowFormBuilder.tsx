@@ -6,8 +6,19 @@ import { Field, FieldErrors } from "@/features/workflows/types";
 import { renderPreviewField } from "@/features/widget/rendererPreview";
 import { workflowSchema } from "@/features/workflows/schema";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
 
 export default function WorkflowFormBuilder() {
+    const router = useRouter();
+
     const [name, setName] = useState("");
     const [webhookUrl, setWebhookUrl] = useState("");
     const [fields, setFields] = useState<Field[]>([]);
@@ -23,7 +34,8 @@ export default function WorkflowFormBuilder() {
         borderRadius: "6px",
         fontSize: "14px",
     });
-
+    const [createdSecret, setCreatedSecret] =
+        useState<string | null>(null);
     /* ---------------- FIELD ACTIONS ---------------- */
 
     const addTextField = () => {
@@ -155,7 +167,6 @@ export default function WorkflowFormBuilder() {
 
         if (!result.success) {
             setErrors(mapZodErrors(result.error, fields));
-            console.log(result.error);
             return false;
         }
 
@@ -195,6 +206,7 @@ export default function WorkflowFormBuilder() {
                 return;
             }
 
+            setCreatedSecret(data.webhookSecret);
             toast.success("Workflow saved successfully");
         } catch {
             toast.error("Failed to save workflow");
@@ -416,6 +428,45 @@ export default function WorkflowFormBuilder() {
                 </div>
 
             </div>
+            <Dialog
+                open={!!createdSecret}
+                onOpenChange={() => {}}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            Webhook Secret
+                        </DialogTitle>
+                        <DialogDescription>
+                            Copy and store this secret securely.
+                            It will not be shown again.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="border rounded p-3 font-mono break-all">
+                        {createdSecret}
+                    </div>
+
+                    <Button
+                        onClick={async () => {
+                            await navigator.clipboard.writeText(
+                                createdSecret as string,
+                            );
+                            toast.success("Secret copied");
+                        }}
+                    >
+                        Copy Secret
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setCreatedSecret(null);
+                            router.push("/workflows");
+                        }}
+                    >
+                        I Saved It
+                    </Button>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

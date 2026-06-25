@@ -40,8 +40,14 @@ export type Workflow = {
     allowedDomain: string;
     fields: Field[];
     theme: Theme;
+    createdAt: string;
+    webhookSecret: string;
 };
 
+export type PublicWorkflow = Omit<
+    Workflow,
+    "webhookSecret"
+>;
 
 export type FieldErrors = {
     name?: string;

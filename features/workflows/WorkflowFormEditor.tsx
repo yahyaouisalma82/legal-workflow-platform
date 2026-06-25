@@ -184,7 +184,7 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
         });
 
         const data = await res.json();
-        console.log(     {res})
+
         if (!res.ok) {
             toast.error(data.error ?? "Update failed");
             return;

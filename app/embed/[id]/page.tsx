@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import {  useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Workflow } from "@/features/workflows/types";
+import {PublicWorkflow} from "@/features/workflows/types";
 import { renderRuntimeField } from "@/features/widget/runtimeRenderer";
 import {useParams} from "next/navigation";
 
@@ -12,7 +12,7 @@ export default function EmbedPage() {
     const params = useParams();
     const id = params.id as string;
 
-    const [workflow, setWorkflow] = useState<Workflow | null>(null);
+    const [workflow, setWorkflow] = useState<PublicWorkflow | null>(null);
     const [loading, setLoading] = useState(true);
 
     const [formData, setFormData] = useState<Record<string, string>>({});
@@ -26,7 +26,7 @@ export default function EmbedPage() {
                 setWorkflow({
                     id: snap.id,
                     ...snap.data(),
-                } as Workflow);
+                } as PublicWorkflow);
             }
 
             setLoading(false);
@@ -47,7 +47,7 @@ export default function EmbedPage() {
 
         if (!workflow) return;
 
-        await fetch("/api/submissions", {
+        const res = await fetch("/api/submissions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -55,9 +55,14 @@ export default function EmbedPage() {
             body: JSON.stringify({
                 workflowId: workflow.id,
                 data: formData,
-                webhookUrl: workflow.webhookUrl,
             }),
         });
+
+        if (!res.ok) {
+            const err = await res.json();
+            alert(err.error ?? "Submission failed");
+            return;
+        }
 
         alert("Submitted successfully");
     };
