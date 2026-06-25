@@ -7,15 +7,17 @@ export function renderPreviewField(field: Field, theme: Theme) {
     border: "1px solid #ddd",
     padding: "8px",
     width: "100%",
-    fontSize: theme.fontSize,
+    fontSize: "18px",
+    textTransform: "capitalize",
   };
 
   const labelStyle: React.CSSProperties = {
     color: theme.primaryColor,
-    fontSize: "12px",
+    fontSize: "18px",
     marginBottom: "4px",
     display: "block",
     fontWeight: 500,
+    textTransform: "capitalize",
   };
 
   switch (field.type) {
@@ -47,10 +49,12 @@ export function renderPreviewField(field: Field, theme: Theme) {
           <label style={labelStyle}>{field.label}</label>
 
           <select style={baseStyle}>
-            <option value="">Select...</option>
+            <option value="" className={"text-lg"}>
+              Select...
+            </option>
 
             {field.options.map((opt) => (
-              <option key={opt} value={opt}>
+              <option key={opt} value={opt} className={"text-lg"}>
                 {opt}
               </option>
             ))}
@@ -73,6 +77,7 @@ export function renderPreviewField(field: Field, theme: Theme) {
           >
             {field.options.map((opt) => (
               <label
+                className={"text-lg"}
                 key={opt}
                 style={{
                   display: "flex",

@@ -32,7 +32,6 @@ export const workflowSchema = z.object({
   theme: z.object({
     primaryColor: z.string(),
     borderRadius: z.string(),
-    fontSize: z.string(),
   }),
 });
 

@@ -16,18 +16,20 @@ export function renderRuntimeField({
 }: RuntimeProps) {
   const baseStyle: React.CSSProperties = {
     borderRadius: theme.borderRadius,
-    fontSize: theme.fontSize,
     border: "1px solid #ddd",
     padding: "8px",
     width: "100%",
+    fontSize: "18px",
+    textTransform: "capitalize",
   };
 
   const labelStyle: React.CSSProperties = {
     color: theme.primaryColor,
-    fontSize: "12px",
+    fontSize: "18px",
     marginBottom: "4px",
     display: "block",
     fontWeight: 500,
+    textTransform: "capitalize",
   };
 
   switch (field.type) {
@@ -74,7 +76,7 @@ export function renderRuntimeField({
             <option value="">Select...</option>
 
             {field.options.map((opt) => (
-              <option key={opt} value={opt}>
+              <option key={opt} value={opt} className={"text-lg"}>
                 {opt}
               </option>
             ))}
@@ -97,6 +99,7 @@ export function renderRuntimeField({
           >
             {field.options.map((opt) => (
               <label
+                className={"text-lg"}
                 key={opt}
                 style={{
                   display: "flex",
@@ -110,7 +113,6 @@ export function renderRuntimeField({
                   checked={value === opt}
                   onChange={() => onChange(opt)}
                 />
-
                 <span>{opt}</span>
               </label>
             ))}

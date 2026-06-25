@@ -8,7 +8,7 @@ export default function WidgetTestPage() {
       </h1>
       <div
         className={"m-0 p-8"}
-        data-workflow-id="QyB26g4PBvbkUxUGwTto"
+        data-workflow-id="6UOO6Tw3xzK7OTT59gpL"
         data-api-base="http://localhost:3000"
       />
 

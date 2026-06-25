@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
+
 import { Field, FieldErrors } from "@/features/workflows/types";
 import { renderPreviewField } from "@/features/widget/rendererPreview";
 import { workflowSchema } from "@/features/workflows/schema";
-import { toast } from "sonner";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function WorkflowFormEditor({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
@@ -21,7 +29,6 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
   const [theme, setTheme] = useState({
     primaryColor: "#000",
     borderRadius: "6px",
-    fontSize: "14px",
   });
 
   /* ---------------- LOAD ---------------- */
@@ -48,38 +55,42 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
     load();
   }, [id]);
 
-  /* ---------------- FIELD ACTIONS (SAME AS CREATE) ---------------- */
+  /* ---------------- ACTIONS ---------------- */
 
   const addTextField = () =>
-    setFields((prev) => [
-      ...prev,
+    setFields((p) => [
+      ...p,
       { id: crypto.randomUUID(), type: "text", label: "" },
     ]);
 
-  const addSelectField = () =>
-    setFields((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), type: "select", label: "", options: [] },
-    ]);
-
   const addEmailField = () =>
-    setFields((prev) => [
-      ...prev,
+    setFields((p) => [
+      ...p,
       { id: crypto.randomUUID(), type: "email", label: "" },
     ]);
 
+  const addSelectField = () =>
+    setFields((p) => [
+      ...p,
+      { id: crypto.randomUUID(), type: "select", label: "", options: [] },
+    ]);
+
   const addRadioField = () =>
-    setFields((prev) => [
-      ...prev,
+    setFields((p) => [
+      ...p,
       { id: crypto.randomUUID(), type: "radio", label: "", options: [] },
     ]);
 
   const updateLabel = (id: string, label: string) => {
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, label } : f)));
+    setFields((p) => p.map((f) => (f.id === id ? { ...f, label } : f)));
+  };
+
+  const deleteField = (id: string) => {
+    setFields((p) => p.filter((f) => f.id !== id));
   };
 
   const updateSelectDraft = (id: string, value: string) => {
-    setOptionDrafts((prev) => ({ ...prev, [id]: value }));
+    setOptionDrafts((p) => ({ ...p, [id]: value }));
   };
 
   const commitSelectOptions = (id: string, value: string) => {
@@ -88,20 +99,16 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
       .map((o) => o.trim())
       .filter(Boolean);
 
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, options } : f)));
+    setFields((p) => p.map((f) => (f.id === id ? { ...f, options } : f)));
 
-    setOptionDrafts((prev) => {
-      const copy = { ...prev };
+    setOptionDrafts((p) => {
+      const copy = { ...p };
       delete copy[id];
       return copy;
     });
   };
 
-  const deleteField = (id: string) => {
-    setFields((prev) => prev.filter((f) => f.id !== id));
-  };
-
-  /* ---------------- VALIDATION (UNCHANGED) ---------------- */
+  /* ---------------- VALIDATION ---------------- */
 
   function mapZodErrors(error: z.ZodError, fields: Field[]): FieldErrors {
     const result: FieldErrors = { fields: {} };
@@ -111,24 +118,18 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
 
       if (path[0] === "name") result.name = issue.message;
       if (path[0] === "webhookUrl") result.webhookUrl = issue.message;
-      if (path[0] === "allowedDomain") {
-        result.allowedDomain = issue.message;
-      }
+      if (path[0] === "allowedDomain") result.allowedDomain = issue.message;
+
       if (path[0] === "fields" && typeof path[1] === "number") {
         const field = fields[path[1]];
         if (!field) continue;
 
-        if (!result.fields[field.id]) {
-          result.fields[field.id] = {};
-        }
+        if (!result.fields[field.id]) result.fields[field.id] = {};
 
-        if (path[2] === "label") {
-          result.fields[field.id].label = issue.message;
-        }
+        if (path[2] === "label") result.fields[field.id].label = issue.message;
 
-        if (path[2] === "options") {
+        if (path[2] === "options")
           result.fields[field.id].options = issue.message;
-        }
       }
     }
 
@@ -157,15 +158,13 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
 
   const updateWorkflow = async () => {
     if (!validate()) {
-      toast.error("Fix validation errors");
+      toast.error("Make sure all fields are correctly filled.");
       return;
     }
 
     const res = await fetch(`/api/workflows/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         webhookUrl,
@@ -187,167 +186,191 @@ export default function WorkflowFormEditor({ id }: { id: string }) {
 
   if (loading) return <div className="p-8">Loading...</div>;
 
-  /* ---------------- UI (IDENTICAL TO CREATE) ---------------- */
+  /* ---------------- UI ---------------- */
 
   return (
-    <div className="w-full mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">Edit Workflow</h1>
+    <div className="min-h-screen bg-muted/30 p-10">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <h1 className="text-3xl font-semibold tracking-tight">Edit Workflow</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* LEFT SIDE */}
-        <div>
-          {/* NAME */}
-          <div className="mb-4">
-            <label className="block mb-2">Workflow Name *</label>
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* LEFT */}
+          <div className="space-y-6">
+            {/* NAME */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Workflow Name</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My workflow"
+                />
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                )}
+              </CardContent>
+            </Card>
 
-            <input
-              className="border p-2 w-full"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            {/* ACTIONS */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Add Fields</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={addTextField}>
+                  Text
+                </Button>
+                <Button variant="outline" onClick={addEmailField}>
+                  Email
+                </Button>
+                <Button variant="outline" onClick={addSelectField}>
+                  Select
+                </Button>
+                <Button variant="outline" onClick={addRadioField}>
+                  Radio
+                </Button>
+              </CardContent>
+            </Card>
 
-            {errors.name && (
-              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-            )}
-          </div>
+            {/* FIELDS */}
+            <div className="space-y-4">
+              {fields.map((field) => (
+                <Card key={field.id}>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm uppercase text-muted-foreground">
+                        {field.type}
+                      </span>
 
-          {/* ACTIONS */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            <button className="border px-4 py-2" onClick={addTextField}>
-              Add Text Field
-            </button>
+                      <Button
+                        variant="ghost"
+                        className="text-red-500"
+                        onClick={() => deleteField(field.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
 
-            <button className="border px-4 py-2" onClick={addEmailField}>
-              Add Email Field
-            </button>
+                    <Input
+                      value={field.label}
+                      onChange={(e) => updateLabel(field.id, e.target.value)}
+                      placeholder="Label"
+                    />
 
-            <button className="border px-4 py-2" onClick={addSelectField}>
-              Add Select Field
-            </button>
+                    {(field.type === "select" || field.type === "radio") && (
+                      <Input
+                        value={
+                          optionDrafts[field.id] ??
+                          (field.options || []).join(", ")
+                        }
+                        onChange={(e) =>
+                          updateSelectDraft(field.id, e.target.value)
+                        }
+                        onBlur={(e) =>
+                          commitSelectOptions(field.id, e.target.value)
+                        }
+                        placeholder="option1, option2"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-            <button className="border px-4 py-2" onClick={addRadioField}>
-              Add Radio Field
-            </button>
-          </div>
+            {/* WEBHOOK */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Webhook</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+                {errors.webhookUrl && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.webhookUrl}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* FIELDS */}
-          <div className="space-y-4 mb-6">
-            {fields.map((field) => (
-              <div key={field.id} className="border p-4 rounded">
-                <div className="text-sm text-gray-600 mb-2 capitalize">
-                  Type: {field.type}
+            {/* DOMAIN */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Allowed Domain</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  value={allowedDomain}
+                  onChange={(e) => setAllowedDomain(e.target.value)}
+                  placeholder="https://example.com"
+                />
+                {errors.allowedDomain && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.allowedDomain}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* THEME */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Theme</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Primary Color</Label>
+                  <input
+                    type="color"
+                    value={theme.primaryColor}
+                    onChange={(e) =>
+                      setTheme((t) => ({
+                        ...t,
+                        primaryColor: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
 
-                <input
-                  className="border p-2 w-full"
-                  value={field.label}
-                  onChange={(e) => updateLabel(field.id, e.target.value)}
-                  placeholder="Field label *"
-                />
+                <Separator />
 
-                {(field.type === "select" || field.type === "radio") && (
+                <div className="space-y-2">
+                  <Label>Border Radius</Label>
                   <input
-                    className="border p-2 w-full mt-2"
-                    value={
-                      optionDrafts[field.id] ?? (field.options || []).join(", ")
-                    }
+                    type="range"
+                    min="0"
+                    max="24"
+                    value={parseInt(theme.borderRadius)}
                     onChange={(e) =>
-                      updateSelectDraft(field.id, e.target.value)
+                      setTheme((t) => ({
+                        ...t,
+                        borderRadius: `${e.target.value}px`,
+                      }))
                     }
-                    onBlur={(e) =>
-                      commitSelectOptions(field.id, e.target.value)
-                    }
-                    placeholder="Option1, Option2 *"
                   />
-                )}
+                </div>
+              </CardContent>
+            </Card>
 
-                <button
-                  className="mt-2 border px-3 py-1"
-                  onClick={() => deleteField(field.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+            <Button className="w-full" onClick={updateWorkflow}>
+              Update Workflow
+            </Button>
           </div>
 
-          {/* WEBHOOK */}
-          <div className="mb-4">
-            <label className="block mb-2">Webhook URL *</label>
-
-            <input
-              className="border p-2 w-full"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-            />
-
-            {errors.webhookUrl && (
-              <p className="text-red-500 text-sm mt-1">{errors.webhookUrl}</p>
-            )}
-          </div>
-
-          {/* ALLOWED DOMAIN */}
-          <div className="mb-4">
-            <label className="block mb-2">Allowed Domain *</label>
-
-            <input
-              className="border p-2 w-full"
-              placeholder="https://lawfirm.com"
-              value={allowedDomain}
-              onChange={(e) => setAllowedDomain(e.target.value)}
-            />
-
-            {errors.allowedDomain && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.allowedDomain}
-              </p>
-            )}
-          </div>
-          {/* THEME */}
-          <div className="mb-6 space-y-2">
-            <h2 className="font-semibold">Theme</h2>
-
-            <input
-              type="color"
-              value={theme.primaryColor}
-              onChange={(e) =>
-                setTheme((t) => ({
-                  ...t,
-                  primaryColor: e.target.value,
-                }))
-              }
-            />
-
-            <input
-              type="range"
-              min="0"
-              max="20"
-              value={parseInt(theme.borderRadius)}
-              onChange={(e) =>
-                setTheme((t) => ({
-                  ...t,
-                  borderRadius: `${e.target.value}px`,
-                }))
-              }
-            />
-          </div>
-
-          {/* SAVE */}
-          <button
-            onClick={updateWorkflow}
-            className="mt-4 px-4 py-2 text-white bg-black"
-          >
-            Update Workflow
-          </button>
-        </div>
-
-        {/* RIGHT SIDE */}
-        <div className="border p-4 rounded h-fit lg:sticky lg:top-8">
-          <h2 className="text-xl font-semibold mb-4">Live Preview</h2>
-
-          <div className="space-y-3">
-            {fields.map((field) => renderPreviewField(field, theme))}
-          </div>
+          {/* RIGHT */}
+          <Card className="h-fit sticky top-10 ">
+            <CardHeader>
+              <CardTitle className={"text-lg"}>Live Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {fields.map((f) => renderPreviewField(f, theme))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

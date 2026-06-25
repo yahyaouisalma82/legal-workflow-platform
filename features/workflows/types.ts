@@ -1,7 +1,6 @@
 export type Theme = {
   primaryColor: string;
   borderRadius: string;
-  fontSize: string;
 };
 
 type BaseField = {

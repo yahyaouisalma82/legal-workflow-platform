@@ -1,65 +1,84 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen flex flex-col gap-2 items-center justify-center  mx-auto">
+      <div className="max-w-6xl mx-auto  space-y-12  flex flex-col gap-4   ">
+        {/* Hero */}
+        <section className="text-center space-y-6">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Workflow Builder
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Create embeddable forms, collect submissions, and trigger your
+            workflows through secure webhooks.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+          <div className="flex justify-center gap-3">
+            <Button asChild className={"text-md"} size="lg">
+              <Link href="/workflows/new">Create Workflow</Link>
+            </Button>
+
+            <Button
+              className={"text-md border-b"}
+              variant="outline"
+              size="lg"
+              asChild
+            >
+              <Link href="/workflows">View Workflows</Link>
+            </Button>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="grid gap-6 md:grid-cols-3 ">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Visual Builder</CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground text-lg">
+              Create dynamic forms with text, email, select, and radio inputs.
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className={"text-lg"}>Embed Anywhere</CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground text-lg">
+              Add the widget to any website with a simple embed.
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className={"text-lg"}>Webhook Delivery</CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground text-lg">
+              Receive submissions securely in your own systems.
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* CTA */}
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+            <h2 className="text-2xl font-semibold">
+              Ready to create your first workflow?
+            </h2>
+
+            <Button asChild size="lg">
+              <Link href="/workflows/new">Get Started</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
